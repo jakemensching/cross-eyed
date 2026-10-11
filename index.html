@@ -10,7 +10,7 @@
 <link rel="icon" id="favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='19' cy='32' r='15' fill='%23F4EEE2' stroke='%231E2230' stroke-width='4'/%3E%3Ccircle cx='45' cy='32' r='15' fill='%23F4EEE2' stroke='%231E2230' stroke-width='4'/%3E%3Cpath d='M17 25h4v14h-4zM12 30h14v4H12zM43 25h4v14h-4zM38 30h14v4H38z' fill='%23B3262E'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Karla:wght@400;500;700&family=Permanent+Marker&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Karla:wght@400;500;700&family=Permanent+Marker&family=Silkscreen&display=swap">
 <style>
 /* Layout: scrappy patchwork page. Rug-red hero with a framed river scene, oatmeal woven shop, trail-sign verse card, river-blue about band, navy footer. Sections stitched together with dashed seams. */
 :root{
@@ -230,6 +230,12 @@ footer h2{color:var(--cream)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,160%);background:var(--night);color:var(--cream);padding:12px 20px;border-radius:999px;border:3px solid var(--leaf);font-weight:700;z-index:50;transition:transform .3s;max-width:calc(100% - 32px);text-align:center}
 .toast.show{transform:translate(-50%,0);visibility:visible}
 .toast{visibility:hidden}
+.achv{position:fixed;top:calc(84px + env(safe-area-inset-top,0px));right:16px;z-index:60;display:flex;align-items:center;gap:12px;background:#2B2B2B;color:#fff;border:3px solid #111;box-shadow:inset 0 0 0 2px #5A5A5A,4px 4px 0 rgba(0,0,0,.35);padding:10px 18px 10px 10px;min-width:230px;max-width:calc(100% - 32px);font-family:"Silkscreen",ui-monospace,"Courier New",monospace;transform:translateX(calc(100% + 24px));visibility:hidden;transition:transform .4s steps(6),visibility 0s .4s}
+.achv.show{transform:none;visibility:visible;transition:transform .4s steps(6)}
+.achv-ic{width:42px;height:42px;flex:none;display:grid;place-items:center;background:#8B8B8B;box-shadow:inset 3px 3px 0 #C6C6C6,inset -3px -3px 0 #555}
+.achv-ic svg{width:28px;height:28px;shape-rendering:crispEdges}
+.achv-t{color:#FFFF55;font-size:.85rem;line-height:1.25}
+.achv-n{color:#fff;font-size:1.05rem;line-height:1.3}
 
 /* ---------- phone tweaks ---------- */
 @media (max-width:560px){
@@ -492,6 +498,11 @@ footer h2{color:var(--cream)}
   </div>
 </footer>
 
+<!-- achievement popup (game-style) for finding the hidden cross -->
+<div class="achv" id="achv" role="status" aria-live="polite">
+  <div class="achv-ic"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="3" y="0" width="2" height="8" fill="#B3262E"/><rect x="1" y="2" width="6" height="2" fill="#B3262E"/><rect x="3" y="0" width="1" height="8" fill="#E0565D"/><rect x="1" y="2" width="6" height="1" fill="#E0565D"/></svg></div>
+  <div><div class="achv-t">Achievement Get!</div><div class="achv-n">Jesus?</div></div>
+</div>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -901,8 +912,19 @@ eggHit.addEventListener("click",()=>{
   if(eggFound){say("Power-up already active ✝ Higher jumps, faster flips.");return;}
   eggFound=true;
   showCrossBonus();
-  say("You found it! ✝ Ashtyn powered up: higher jumps, faster flips. Up to 4.5!");
+  showAchv();
 });
+
+/* achievement popup + a tiny retro chime (only plays because the visitor just clicked) */
+const achv=document.getElementById("achv");let achvT;
+function chime(){
+  try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return;const ac=new A();
+    [[784,0],[1175,.13]].forEach(([f,t])=>{const o=ac.createOscillator(),g=ac.createGain();o.type="square";o.frequency.value=f;
+      g.gain.setValueAtTime(.0001,ac.currentTime+t);g.gain.exponentialRampToValueAtTime(.04,ac.currentTime+t+.02);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+t+.28);
+      o.connect(g).connect(ac.destination);o.start(ac.currentTime+t);o.stop(ac.currentTime+t+.3);});
+    setTimeout(()=>ac.close(),900);}catch(e){}
+}
+function showAchv(){achv.classList.add("show");chime();clearTimeout(achvT);achvT=setTimeout(()=>achv.classList.remove("show"),4500);}
 
 /* ---------- logo = back to the very top ---------- */
 document.querySelectorAll('a[href="#top"]').forEach(a=>a.addEventListener("click",e=>{
