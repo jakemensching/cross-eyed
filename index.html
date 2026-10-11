@@ -147,7 +147,8 @@ section{padding-block:80px;scroll-margin-top:70px}
 #judges.on g:nth-child(3) .card{animation-delay:.24s}
 @keyframes cardUp{from{transform:translateY(30px) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
 .egg{transition:fill .3s}
-.egg:hover{fill:var(--cream)}
+.egg-hit{cursor:pointer}
+.egg-hit:hover .egg,.egg-hit.found .egg{fill:var(--cream)}
 @media (prefers-reduced-motion: reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition:none!important}
@@ -325,8 +326,13 @@ footer h2{color:var(--cream)}
             <rect x="0" y="204" width="800" height="4" fill="#8E1C23"/>
             <rect x="0" y="150" width="800" height="7" fill="#B3262E"/>
             <g id="posts" fill="#B3262E"></g>
-            <!-- EASTER EGG: one railing post has a crossbar. Hover it. -->
-            <rect class="egg" x="512" y="163" width="22" height="5" rx="1" fill="#B3262E"><title>You found it ✝</title></rect>
+            <!-- EASTER EGG: one railing post (right of Ashtyn) has a crossbar, making a cross. Hover or tap it. -->
+            <g class="egg-hit" id="eggHit">
+              <rect x="512" y="144" width="48" height="50" fill="transparent"/>
+              <rect class="egg" x="532" y="150" width="7" height="40" fill="#B3262E"/>
+              <rect class="egg" x="524.5" y="164" width="22" height="6" rx="1" fill="#B3262E"/>
+              <title>You found it ✝</title>
+            </g>
           </g>
           <!-- splash -->
           <g id="splash">
@@ -869,6 +875,11 @@ async function heartbeat(){
 heartbeat();
 setInterval(heartbeat,HEARTBEAT_MS);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)heartbeat();});
+
+/* ---------- easter egg cross on the bridge ---------- */
+const eggHit=document.getElementById("eggHit");
+eggHit.addEventListener("pointerdown",e=>e.stopPropagation());   /* don't launch Ashtyn when tapping the cross */
+eggHit.addEventListener("click",()=>{eggHit.classList.add("found");say("You found it! ✝ Eyes on the cross.");});
 
 /* ---------- logo = back to the very top ---------- */
 document.querySelectorAll('a[href="#top"]').forEach(a=>a.addEventListener("click",e=>{
