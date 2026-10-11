@@ -206,7 +206,8 @@ section{padding-block:80px;scroll-margin-top:70px}
 .about h2{color:var(--cream)}
 .about-copy{display:flex;flex-direction:column;gap:14px;margin-top:14px;max-width:54ch}
 /* PHOTO: replace this placeholder with a real photo of Ashtyn, e.g. <img src="ashtyn.jpg" alt="Ashtyn by the river"> */
-.photo{aspect-ratio:4/5;max-width:100%;border:4px solid var(--night);border-radius:20px;background:var(--oat);background-image:var(--woven);display:grid;place-items:center;text-align:center;color:var(--night);box-shadow:8px 8px 0 var(--night);transform:rotate(-2deg);padding:20px}
+.photo{aspect-ratio:4/5;max-width:100%;border:4px solid var(--night);border-radius:20px;background:var(--oat);box-shadow:8px 8px 0 var(--night);transform:rotate(-2deg);overflow:hidden}
+.photo img{display:block;width:100%;height:100%;object-fit:cover}
 .photo span{font-family:var(--f-hand);font-size:1.2rem}
 .photo svg{width:90px;height:auto;margin:0 auto 10px}
 .edit-note{font-size:.85rem;opacity:.85;font-style:italic}
@@ -452,10 +453,8 @@ footer h2{color:var(--cream)}
   <section class="about" id="about">
     <div class="wrap">
       <div class="photo">
-        <div>
-          <svg viewBox="0 0 90 70" aria-hidden="true"><rect x="4" y="14" width="82" height="52" rx="8" fill="none" stroke="#1E2230" stroke-width="4"/><rect x="30" y="4" width="30" height="14" rx="4" fill="#1E2230"/><circle cx="45" cy="40" r="15" fill="none" stroke="#B3262E" stroke-width="4"/></svg>
-          <span>Photo of Ashtyn goes here</span>
-        </div>
+        <!-- PHOTO: ashtyn.jpg (cropped to 4:5, 800x1000). Swap the file to change it. -->
+        <img src="ashtyn.jpg" width="800" height="1000" loading="lazy" decoding="async" alt="Ashtyn in a paisley beanie and maroon jacket, standing in a wildflower field">
       </div>
       <div>
         <span class="eyebrow">the guy behind the hats</span>

@@ -8,7 +8,7 @@ Single-page site for Ashtyn Simerson's hat brand. Everything lives in `index.htm
 Search `index.html` for these comments:
 - `LOGO` for the real logo
 - `HAT PHOTOS` and `PRICES` for real hat photos and prices
-- `PHOTO` and `ABOUT TEXT` for Ashtyn's photo and his own about copy
+- `ABOUT TEXT` for Ashtyn's own about copy (photo is in: `ashtyn.jpg`)
 - Verses currently use the KJV (public domain). Switching to the NIV needs Biblica's copyright notice.
 
 ## Run it
