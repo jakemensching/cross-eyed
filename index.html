@@ -724,7 +724,7 @@ function aimLogo(x,y){
 }
 function crossEyes(on){
   crossed=on;crossBtn.setAttribute("aria-pressed",on);
-  queueFav(favAim[0],favAim[1],on);
+  favUpdate();
   if(on){const w=pL.parentElement.getBoundingClientRect().width*.22;
     pL.style.transform=`translate(${w}px,${w*.4}px)`;pR.style.transform=`translate(${-w}px,${w*.4}px)`;
     logoP[0].style.transform="translate(3px,1px)";logoP[1].style.transform="translate(-3px,1px)";}
@@ -740,41 +740,63 @@ crossBtn.addEventListener("blur",()=>crossEyes(false));
 
 /* ---------- LIVE FAVICON ----------
    Redraws the tab icon on a tiny canvas so its eyes look where the cursor is on the page.
-   Switch tabs and the eyes go cross-eyed until you come back.
+   Pupils glide toward their target (about 30 redraws a second, only while moving).
+   Cross button = cross-eyed. Switch tabs = eyes close and he "sleeps" until you come back.
    Works in Chrome, Edge and Firefox. Safari ignores favicon changes and keeps the static one. */
 const favLink=document.getElementById("favicon"),favCanvas=document.createElement("canvas");
 favCanvas.width=favCanvas.height=64;
 const fctx=favCanvas.getContext("2d");
-let favAim=[0,0],favLastUrl="",favNext=null,favTimer=0;
-function drawFav(ox,oy,cross){
+const FAV_EYES=[[19,32],[45,32]],FAV_MAX=6;
+let favAim=[0,0],favCur=[[0,0],[0,0]],favLastUrl="",favRaf=0,favLastDraw=0;
+function favTargets(){
+  return crossed?[[FAV_MAX,2],[-FAV_MAX,2]]:[favAim,favAim];
+}
+function drawFav(closed){
   if(!favLink||!fctx)return;
   fctx.clearRect(0,0,64,64);
-  [[19,32],[45,32]].forEach(([cx,cy],i)=>{
+  FAV_EYES.forEach(([cx,cy],i)=>{
     fctx.beginPath();fctx.arc(cx,cy,14.5,0,Math.PI*2);
     fctx.fillStyle="#F4EEE2";fctx.fill();fctx.lineWidth=4;fctx.strokeStyle="#1E2230";fctx.stroke();
-    const px=cross?cx+(i===0?6:-6):cx+ox, py=cross?cy+2:cy+oy;
-    fctx.fillStyle="#B3262E";
-    fctx.fillRect(px-2.5,py-7,5,14);fctx.fillRect(px-7,py-2.5,14,5);
+    if(closed){
+      /* sleepy closed eye: a little curve with three lashes */
+      fctx.lineCap="round";fctx.lineWidth=3.5;
+      fctx.beginPath();fctx.arc(cx,cy-7,10,.2*Math.PI,.8*Math.PI);fctx.stroke();
+      fctx.lineWidth=2.5;
+      [.35,.5,.65].forEach(a=>{const t=a*Math.PI;fctx.beginPath();
+        fctx.moveTo(cx+Math.cos(t)*10,cy-7+Math.sin(t)*10);fctx.lineTo(cx+Math.cos(t)*14,cy-7+Math.sin(t)*14);fctx.stroke();});
+    }else{
+      const px=cx+favCur[i][0],py=cy+favCur[i][1];
+      fctx.fillStyle="#B3262E";
+      fctx.fillRect(px-2.5,py-7,5,14);fctx.fillRect(px-7,py-2.5,14,5);
+    }
   });
   const url=favCanvas.toDataURL("image/png");
   if(url!==favLastUrl){favLastUrl=url;favLink.type="image/png";favLink.href=url;}
 }
-/* at most ~10 redraws a second, so it stays light */
-function queueFav(ox,oy,cross){
-  favNext=[ox,oy,cross];if(favTimer)return;
-  favTimer=setTimeout(()=>{favTimer=0;drawFav(...favNext);},100);
+function favTick(now){
+  favRaf=0;
+  if(document.hidden)return;
+  const tg=favTargets();let moving=false;
+  favCur=favCur.map((c,i)=>{
+    const dx=tg[i][0]-c[0],dy=tg[i][1]-c[1];
+    if(Math.abs(dx)>.05||Math.abs(dy)>.05){moving=true;return[c[0]+dx*.35,c[1]+dy*.35];}
+    return[tg[i][0],tg[i][1]];
+  });
+  if(now-favLastDraw>=33||!moving){favLastDraw=now;drawFav(false);}
+  if(moving)favRaf=requestAnimationFrame(favTick);
 }
+function favUpdate(){if(!favRaf&&!document.hidden)favRaf=requestAnimationFrame(favTick);}
 window.addEventListener("pointermove",e=>{
   let nx=e.clientX/innerWidth*2-1, ny=e.clientY/innerHeight*2-1;
   const len=Math.hypot(nx,ny);if(len>1){nx/=len;ny/=len;}
-  favAim=[Math.round(nx*6*2)/2,Math.round(ny*6*2)/2];
-  if(!crossed)queueFav(favAim[0],favAim[1],false);
+  favAim=[nx*FAV_MAX,ny*FAV_MAX];
+  favUpdate();
 });
 document.addEventListener("visibilitychange",()=>{
-  if(document.hidden)drawFav(0,0,true);      /* waiting for you to come back */
-  else drawFav(favAim[0],favAim[1],crossed);
+  if(document.hidden){if(favRaf){cancelAnimationFrame(favRaf);favRaf=0;}drawFav(true);}   /* asleep till you're back */
+  else{drawFav(false);favUpdate();}
 });
-drawFav(0,0,false);
+drawFav(false);
 
 /* ---------- BACKEND HEARTBEAT ----------
    OFF until the backend exists. When it's live, set BACKEND_URL to its base URL
