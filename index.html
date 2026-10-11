@@ -135,6 +135,10 @@ section{padding-block:80px;scroll-margin-top:70px}
 .scene{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 @media (hover:hover){.scene{cursor:pointer}}
 .flying .bob{animation:none}
+.game-title{flex-basis:100%;margin:0;font-family:var(--f-display);font-size:clamp(1.05rem,2.2vw,1.25rem);line-height:1.25;color:var(--cream);text-wrap:balance}
+#nameTag{transition:opacity .2s;animation:tagBob 2.4s ease-in-out infinite}
+#nameTag.gone{opacity:0}
+@keyframes tagBob{50%{transform:translateY(-4px)}}
 #judges{opacity:0;transition:opacity .2s}
 #judges.on{opacity:1}
 #judges .card{transform-box:fill-box;transform-origin:50% 100%}
@@ -285,7 +289,7 @@ footer h2{color:var(--cream)}
 
       <div class="scene-col">
       <div class="scene">
-        <svg viewBox="0 0 800 520" role="img" aria-label="Cartoon of a guy in a red rug hat about to jump off a red wooden bridge into a blue Michigan river, with pines, a birch, rocks, and a small waterfall">
+        <svg viewBox="0 0 800 520" role="img" aria-label="Cartoon of Ashtyn in a red rug hat about to jump off a red wooden bridge into a blue Michigan river, with pines, a birch, rocks, and a small waterfall">
           <defs>
             <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5DA9DC"/><stop offset="1" stop-color="#C4E4F6"/></linearGradient>
             <pattern id="hatRug" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#B3262E"/><path d="M4 1 L7 4 L4 7 L1 4Z" fill="#E6DCC8"/><circle cx="4" cy="4" r="1" fill="#6F9A4B"/></pattern>
@@ -351,6 +355,13 @@ footer h2{color:var(--cream)}
             </g>
            </g>
           </g>
+          <!-- name tag so people know it's Ashtyn (fades out once he jumps) -->
+          <g id="nameTag" aria-hidden="true">
+            <rect x="348" y="40" width="104" height="35" rx="7" fill="#F4EEE2" stroke="#1E2230" stroke-width="3"/>
+            <path d="M391 74 L400 87 L409 74" fill="#F4EEE2" stroke="#1E2230" stroke-width="3" stroke-linejoin="round"/>
+            <rect x="389" y="69" width="22" height="6" fill="#F4EEE2"/>
+            <text x="400" y="64" text-anchor="middle" font-family="Bowlby One, Arial Black, sans-serif" font-size="17" fill="#B3262E">ASHTYN</text>
+          </g>
           <text id="slap" x="412" y="286" text-anchor="middle" font-family="Bowlby One, Arial Black, sans-serif" font-size="36" fill="#F4EEE2" stroke="#B3262E" stroke-width="2.5" paint-order="stroke" aria-hidden="true">SLAP!</text>
           <!-- judges' scorecards (Ashtyn's buddies on the bank) -->
           <g id="judges" aria-hidden="true">
@@ -365,9 +376,10 @@ footer h2{color:var(--cream)}
         </svg>
       </div>
       <div class="jump-row">
+        <p class="game-title">Ashtyn loves cliff, bridge, and platform jumping. Send him off this bridge!</p>
         <button class="btn btn-jump" id="jumpBtn" type="button" aria-describedby="jumpCount">Tap to jump</button>
         <span class="best" id="bestScore"></span>
-        <p class="jump-count" id="jumpCount" aria-live="polite">Bridge dive game: tap to jump, <b>hold</b> to flip, <b>let go</b> to straighten out. Hit the water feet or head first. Hit it flat and... you'll see.</p>
+        <p class="jump-count" id="jumpCount" aria-live="polite">Tap to jump, <b>hold</b> to flip, <b>let go</b> to straighten out. Hit the water feet or head first. Hit it flat and... you'll see.</p>
       </div>
       </div>
     </div>
@@ -651,7 +663,7 @@ rollBtn.addEventListener("click",()=>{
    (Old "send him off the bridge" version is in git history if we want it back.) */
 const jumper=document.getElementById("jumper"),splash=document.getElementById("splash"),jumpBtn=document.getElementById("jumpBtn"),jumpCount=document.getElementById("jumpCount");
 const flip=document.getElementById("flip"),slap=document.getElementById("slap"),scene=document.querySelector(".scene");
-const judgesEl=document.getElementById("judges"),judgeTexts=[...judgesEl.querySelectorAll("text")],bestEl=document.getElementById("bestScore");
+const nameTag=document.getElementById("nameTag"),judgesEl=document.getElementById("judges"),judgeTexts=[...judgesEl.querySelectorAll("text")],bestEl=document.getElementById("bestScore");
 const G={X:400,Y:142,WATER:318,VX:42,VY:-275,GRAV:600,MAX_SPIN:-800,SPIN_ACCEL:-2800,CLEAN:40};
 let state="ready",holding=false,px=0,py=0,vx=0,vy=0,rot=0,omega=0,tuck=1,lastT=0,best=0,dives=0;
 try{best=+localStorage.getItem("crosseyedBest")||0}catch(e){}
@@ -662,7 +674,7 @@ function press(){holding=true;if(state==="ready")launch();}
 function release(){holding=false;}
 function launch(){
   state="air";px=G.X;py=G.Y;vx=G.VX;vy=G.VY;rot=0;omega=0;tuck=1;lastT=performance.now();
-  judgesEl.classList.remove("on");jumper.classList.add("flying");
+  judgesEl.classList.remove("on");jumper.classList.add("flying");nameTag.classList.add("gone");
   jumpBtn.textContent="Hold to flip";
   jumpCount.textContent="Hold to spin. Let go to straighten out.";
   requestAnimationFrame(step);
@@ -729,7 +741,7 @@ function enter(){
     jumper.classList.add("noanim");jumper.classList.remove("under","flying");
     jumper.style.transform="";flip.style.transform="";
     void jumper.getBoundingClientRect();jumper.classList.remove("noanim");
-    jumpBtn.textContent="Tap to jump again";state="ready";
+    jumpBtn.textContent="Tap to jump again";nameTag.classList.remove("gone");state="ready";
   },flop?2600:2000);
 }
 
