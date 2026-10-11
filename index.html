@@ -130,6 +130,8 @@ section{padding-block:80px;scroll-margin-top:70px}
 .btn-jump:disabled{opacity:.7;cursor:wait}
 .jump-count{font-family:var(--f-hand);color:var(--oat);font-size:1.05rem;flex-basis:100%;margin:0;line-height:1.45}
 .jump-count b{color:var(--cream)}
+.bonus{font-family:var(--f-display);font-size:.85rem;background:var(--cream);color:var(--rug);padding:4px 12px;border-radius:999px;border:2px solid var(--night);animation:bonusIn .5s ease-out}
+@keyframes bonusIn{0%{transform:scale(.4) rotate(-8deg)}60%{transform:scale(1.15) rotate(3deg)}100%{transform:none}}
 .best{font-family:var(--f-display);color:var(--cream);font-size:1rem;font-variant-numeric:tabular-nums}
 .btn-jump{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;min-width:190px}
 .scene{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -385,6 +387,7 @@ footer h2{color:var(--cream)}
       <div class="jump-row">
         <button class="btn btn-jump" id="jumpBtn" type="button" aria-describedby="jumpCount">Tap to jump</button>
         <span class="best" id="bestScore"></span>
+        <span class="bonus" id="crossBonus" hidden>✝ ×1.5 cross bonus</span>
         <p class="jump-count" id="jumpCount" aria-live="polite">Tap to jump, <b>hold</b> to flip, <b>let go</b> to straighten out. Hit the water feet or head first. Hit it flat and... you'll see.</p>
       </div>
       </div>
@@ -714,7 +717,7 @@ function enter(){
   const base=flop?1.5:kind==="cannonball"?4.5:3+q*3.5+Math.min(flips,2.5)*1.3;
   const scores=judge(base);
   const dd=flop||kind==="cannonball"?1:1+flips*.5;
-  const total3=scores.reduce((s,x)=>s+x,0), score=Math.round(total3*dd*10)/10;
+  const total3=scores.reduce((s,x)=>s+x,0), score=Math.round(total3*dd*(eggFound?CROSS_MULT:1)*10)/10;
   const fl=flips===0?"No flips":`${flips} flip${flips===1?"":"s"}`;
   const msg={
     feet:`${fl}, feet first. Clean!`,
@@ -737,7 +740,7 @@ function enter(){
   setTimeout(()=>{
     judgeTexts.forEach((t,i)=>{t.textContent=scores[i]%1?scores[i].toFixed(1):scores[i];t.setAttribute("fill",scores[i]<4?"#B3262E":"#1E2230");});
     judgesEl.classList.remove("on");void judgesEl.getBoundingClientRect();judgesEl.classList.add("on");
-    let line=`${msg} Judges: ${scores.join(" · ")} × ${dd.toFixed(1)} = ${score.toFixed(1)}`;
+    let line=`${msg} Judges: ${scores.join(" · ")} × ${dd.toFixed(1)}${eggFound?` × ${CROSS_MULT} ✝`:""} = ${score.toFixed(1)}`;
     if(score>best){best=score;try{localStorage.setItem("crosseyedBest",String(best))}catch(e){}line+=" NEW BEST!";renderBest();}
     jumpCount.textContent=line;
   },350);
@@ -879,7 +882,18 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)heartbeat(
 /* ---------- easter egg cross on the bridge ---------- */
 const eggHit=document.getElementById("eggHit");
 eggHit.addEventListener("pointerdown",e=>e.stopPropagation());   /* don't launch Ashtyn when tapping the cross */
-eggHit.addEventListener("click",()=>{eggHit.classList.add("found");say("You found it! ✝ Eyes on the cross.");});
+/* finding the cross unlocks a x1.5 score multiplier on every dive (remembered in this browser) */
+const CROSS_MULT=1.5,crossBonus=document.getElementById("crossBonus");
+let eggFound=false;
+try{eggFound=localStorage.getItem("crosseyedCross")==="1";}catch(e){}
+function showCrossBonus(){eggHit.classList.add("found");crossBonus.hidden=false;}
+if(eggFound)showCrossBonus();
+eggHit.addEventListener("click",()=>{
+  if(eggFound){say("Cross bonus already active: ×1.5 on every dive ✝");return;}
+  eggFound=true;try{localStorage.setItem("crosseyedCross","1");}catch(e){}
+  showCrossBonus();
+  say("You found it! ✝ Cross bonus unlocked: ×1.5 on every dive.");
+});
 
 /* ---------- logo = back to the very top ---------- */
 document.querySelectorAll('a[href="#top"]').forEach(a=>a.addEventListener("click",e=>{
