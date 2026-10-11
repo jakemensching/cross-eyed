@@ -45,7 +45,7 @@ section{padding-block:80px;scroll-margin-top:70px}
 /* ---------- NAV ---------- */
 .nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--cream);border-bottom:3px dashed var(--rug)}
 .nav .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:8px;position:relative}
-.logo{display:flex;align-items:center;text-decoration:none}
+.logo{display:flex;align-items:center;text-decoration:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 /* LOGO: swap this SVG for Ashtyn's real logo later */
 .logo svg{height:40px;width:auto;display:block}
 .nav-links{display:flex;gap:24px;list-style:none;margin:0;padding:0;font-weight:700}
@@ -869,6 +869,13 @@ async function heartbeat(){
 heartbeat();
 setInterval(heartbeat,HEARTBEAT_MS);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)heartbeat();});
+
+/* ---------- logo = back to the very top ---------- */
+document.querySelectorAll('a[href="#top"]').forEach(a=>a.addEventListener("click",e=>{
+  e.preventDefault();
+  window.scrollTo({top:0,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+  try{history.replaceState(null,"",location.pathname+location.search);}catch(err){}
+}));
 
 /* ---------- mobile menu ---------- */
 const menuBtn=document.getElementById("menuBtn"),navLinks=document.getElementById("navLinks");
