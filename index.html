@@ -328,7 +328,7 @@ footer h2{color:var(--cream)}
             <rect x="0" y="204" width="800" height="4" fill="#8E1C23"/>
             <rect x="0" y="150" width="800" height="7" fill="#B3262E"/>
             <g id="posts" fill="#B3262E"></g>
-            <!-- EASTER EGG: one railing post (right of Ashtyn) has a crossbar, making a cross. Hover or tap it. -->
+            <!-- EASTER EGG: one railing post (random each load, see hideCross) has a crossbar, making a cross. Hover or tap it. -->
             <g class="egg-hit" id="eggHit">
               <rect x="512" y="144" width="48" height="50" fill="transparent"/>
               <rect class="egg" x="532" y="150" width="7" height="40" fill="#B3262E"/>
@@ -387,7 +387,7 @@ footer h2{color:var(--cream)}
       <div class="jump-row">
         <button class="btn btn-jump" id="jumpBtn" type="button" aria-describedby="jumpCount">Tap to jump</button>
         <span class="best" id="bestScore"></span>
-        <span class="bonus" id="crossBonus" hidden>✝ ×1.5 cross bonus</span>
+        <span class="bonus" id="crossBonus" hidden>✝ Power-up: higher jumps, faster flips</span>
         <p class="jump-count" id="jumpCount" aria-live="polite">Tap to jump, <b>hold</b> to flip, <b>let go</b> to straighten out. Hit the water feet or head first. Hit it flat and... you'll see.</p>
       </div>
       </div>
@@ -487,7 +487,7 @@ footer h2{color:var(--cream)}
     </div>
     <div class="foot-bottom">
       <span><svg viewBox="0 0 34 22" aria-hidden="true"><circle cx="9" cy="11" r="8" fill="#F4EEE2"/><circle cx="25" cy="11" r="8" fill="#F4EEE2"/><path d="M10 7v8M7 11h6M24 7v8M21 11h6" stroke="#B3262E" stroke-width="2.5" stroke-linecap="round"/></svg>Crosseyed. Handmade in Michigan.</span>
-      <span>Psst. There's a cross hiding on the bridge.</span>
+      <span>Psst. There's a cross hiding on the bridge. Find it for a power-up.</span>
     </div>
   </div>
 </footer>
@@ -674,6 +674,9 @@ const jumper=document.getElementById("jumper"),splash=document.getElementById("s
 const flip=document.getElementById("flip"),slap=document.getElementById("slap"),scene=document.querySelector(".scene");
 const nameTag=document.getElementById("nameTag"),judgesEl=document.getElementById("judges"),judgeTexts=[...judgesEl.querySelectorAll("text")],bestEl=document.getElementById("bestScore");
 const G={X:400,Y:142,WATER:318,VX:42,VY:-275,GRAV:600,MAX_SPIN:-800,SPIN_ACCEL:-2800,CLEAN:40};
+/* CROSS POWER-UP (find the cross on the bridge): higher jump + faster spin. Tuned so the max is 4.5 flips; 5 is physically out of reach. */
+const POWER={VY:-340,MAX_SPIN:-1200,SPIN_ACCEL:-5000};
+let pw=G;
 let state="ready",holding=false,px=0,py=0,vx=0,vy=0,rot=0,omega=0,tuck=1,lastT=0,best=0,dives=0;
 try{best=+localStorage.getItem("crosseyedBest")||0}catch(e){}
 const renderBest=()=>{bestEl.textContent=best?`Best: ${best.toFixed(1)}`:"";};
@@ -682,7 +685,8 @@ renderBest();
 function press(){holding=true;if(state==="ready")launch();}
 function release(){holding=false;}
 function launch(){
-  state="air";px=G.X;py=G.Y;vx=G.VX;vy=G.VY;rot=0;omega=0;tuck=1;lastT=performance.now();
+  pw=eggFound?POWER:G;
+  state="air";px=G.X;py=G.Y;vx=G.VX;vy=pw.VY;rot=0;omega=0;tuck=1;lastT=performance.now();
   judgesEl.classList.remove("on");jumper.classList.add("flying");nameTag.classList.add("gone");
   jumpBtn.textContent="Hold to flip";
   jumpCount.textContent="Hold to spin. Let go to straighten out.";
@@ -692,7 +696,7 @@ function step(now){
   if(state!=="air")return;
   const dt=Math.min(.033,(now-lastT)/1000);lastT=now;
   vy+=G.GRAV*dt;px+=vx*dt;py+=vy*dt;
-  if(holding)omega=Math.max(G.MAX_SPIN,omega+G.SPIN_ACCEL*dt);
+  if(holding)omega=Math.max(pw.MAX_SPIN,omega+pw.SPIN_ACCEL*dt);
   else omega*=Math.exp(-9*dt);
   rot+=omega*dt;
   tuck+=((holding?.7:1)-tuck)*Math.min(1,dt*14);
@@ -717,7 +721,7 @@ function enter(){
   const base=flop?1.5:kind==="cannonball"?4.5:3+q*3.5+Math.min(flips,2.5)*1.3;
   const scores=judge(base);
   const dd=flop||kind==="cannonball"?1:1+flips*.5;
-  const total3=scores.reduce((s,x)=>s+x,0), score=Math.round(total3*dd*(eggFound?CROSS_MULT:1)*10)/10;
+  const total3=scores.reduce((s,x)=>s+x,0), score=Math.round(total3*dd*10)/10;
   const fl=flips===0?"No flips":`${flips} flip${flips===1?"":"s"}`;
   const msg={
     feet:`${fl}, feet first. Clean!`,
@@ -740,7 +744,7 @@ function enter(){
   setTimeout(()=>{
     judgeTexts.forEach((t,i)=>{t.textContent=scores[i]%1?scores[i].toFixed(1):scores[i];t.setAttribute("fill",scores[i]<4?"#B3262E":"#1E2230");});
     judgesEl.classList.remove("on");void judgesEl.getBoundingClientRect();judgesEl.classList.add("on");
-    let line=`${msg} Judges: ${scores.join(" · ")} × ${dd.toFixed(1)}${eggFound?` × ${CROSS_MULT} ✝`:""} = ${score.toFixed(1)}`;
+    let line=`${msg} Judges: ${scores.join(" · ")} × ${dd.toFixed(1)} = ${score.toFixed(1)}`;
     if(score>best){best=score;try{localStorage.setItem("crosseyedBest",String(best))}catch(e){}line+=" NEW BEST!";renderBest();}
     jumpCount.textContent=line;
   },350);
@@ -882,17 +886,22 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)heartbeat(
 /* ---------- easter egg cross on the bridge ---------- */
 const eggHit=document.getElementById("eggHit");
 eggHit.addEventListener("pointerdown",e=>e.stopPropagation());   /* don't launch Ashtyn when tapping the cross */
-/* finding the cross unlocks a x1.5 score multiplier on every dive (remembered in this browser) */
-const CROSS_MULT=1.5,crossBonus=document.getElementById("crossBonus");
+/* finding the cross powers Ashtyn up: higher jumps, faster spins, up to 4.5 flips.
+   Resets on every page load, and the cross hides on a different railing post each time. */
+const crossBonus=document.getElementById("crossBonus");
 let eggFound=false;
-try{eggFound=localStorage.getItem("crosseyedCross")==="1";}catch(e){}
 function showCrossBonus(){eggHit.classList.add("found");crossBonus.hidden=false;}
-if(eggFound)showCrossBonus();
+(function hideCross(){
+  /* railing posts sit at x = 12, 52, 92 ... 772. Skip the edges and the posts right around Ashtyn. */
+  const posts=[];for(let x=52;x<=732;x+=40){if(x<350||x>452)posts.push(x);}
+  const x=posts[Math.floor(Math.random()*posts.length)];
+  eggHit.setAttribute("transform",`translate(${x-532},0)`);
+})();
 eggHit.addEventListener("click",()=>{
-  if(eggFound){say("Cross bonus already active: ×1.5 on every dive ✝");return;}
-  eggFound=true;try{localStorage.setItem("crosseyedCross","1");}catch(e){}
+  if(eggFound){say("Power-up already active ✝ Higher jumps, faster flips.");return;}
+  eggFound=true;
   showCrossBonus();
-  say("You found it! ✝ Cross bonus unlocked: ×1.5 on every dive.");
+  say("You found it! ✝ Ashtyn powered up: higher jumps, faster flips. Up to 4.5!");
 });
 
 /* ---------- logo = back to the very top ---------- */
