@@ -128,7 +128,20 @@ section{padding-block:80px;scroll-margin-top:70px}
 .btn-jump{background:var(--leaf);color:var(--night);box-shadow:4px 4px 0 var(--night)}
 .btn-jump:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--night)}
 .btn-jump:disabled{opacity:.7;cursor:wait}
-.jump-count{font-family:var(--f-hand);color:var(--oat);font-size:1.1rem}
+.jump-count{font-family:var(--f-hand);color:var(--oat);font-size:1.05rem;flex-basis:100%;margin:0;line-height:1.45}
+.jump-count b{color:var(--cream)}
+.best{font-family:var(--f-display);color:var(--cream);font-size:1rem;font-variant-numeric:tabular-nums}
+.btn-jump{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;min-width:190px}
+.scene{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+@media (hover:hover){.scene{cursor:pointer}}
+.flying .bob{animation:none}
+#judges{opacity:0;transition:opacity .2s}
+#judges.on{opacity:1}
+#judges .card{transform-box:fill-box;transform-origin:50% 100%}
+#judges.on .card{animation:cardUp .45s ease-out backwards}
+#judges.on g:nth-child(2) .card{animation-delay:.12s}
+#judges.on g:nth-child(3) .card{animation-delay:.24s}
+@keyframes cardUp{from{transform:translateY(30px) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
 .egg{transition:fill .3s}
 .egg:hover{fill:var(--cream)}
 @media (prefers-reduced-motion: reduce){
@@ -339,6 +352,12 @@ footer h2{color:var(--cream)}
            </g>
           </g>
           <text id="slap" x="412" y="286" text-anchor="middle" font-family="Bowlby One, Arial Black, sans-serif" font-size="36" fill="#F4EEE2" stroke="#B3262E" stroke-width="2.5" paint-order="stroke" aria-hidden="true">SLAP!</text>
+          <!-- judges' scorecards (Ashtyn's buddies on the bank) -->
+          <g id="judges" aria-hidden="true">
+            <g transform="translate(22,434)"><g class="card"><rect x="19" y="32" width="6" height="26" fill="#5B3A1E"/><rect width="44" height="34" rx="5" fill="#F4EEE2" stroke="#1E2230" stroke-width="3"/><text x="22" y="24" text-anchor="middle" font-family="Bowlby One, Arial Black, sans-serif" font-size="16" fill="#1E2230">0</text></g></g>
+            <g transform="translate(76,434)"><g class="card"><rect x="19" y="32" width="6" height="26" fill="#5B3A1E"/><rect width="44" height="34" rx="5" fill="#F4EEE2" stroke="#1E2230" stroke-width="3"/><text x="22" y="24" text-anchor="middle" font-family="Bowlby One, Arial Black, sans-serif" font-size="16" fill="#1E2230">0</text></g></g>
+            <g transform="translate(130,434)"><g class="card"><rect x="19" y="32" width="6" height="26" fill="#5B3A1E"/><rect width="44" height="34" rx="5" fill="#F4EEE2" stroke="#1E2230" stroke-width="3"/><text x="22" y="24" text-anchor="middle" font-family="Bowlby One, Arial Black, sans-serif" font-size="16" fill="#1E2230">0</text></g></g>
+          </g>
           <!-- drifting leaves -->
           <path class="leaf" d="M120 120 q8 -10 16 0 q-8 10 -16 0Z" fill="#C2562A"/>
           <path class="leaf l2" d="M300 90 q8 -10 16 0 q-8 10 -16 0Z" fill="#6F9A4B"/>
@@ -346,8 +365,9 @@ footer h2{color:var(--cream)}
         </svg>
       </div>
       <div class="jump-row">
-        <button class="btn btn-jump" id="jumpBtn" type="button">Send him off the bridge</button>
-        <span class="jump-count" id="jumpCount" aria-live="polite">He's ready. Are you?</span>
+        <button class="btn btn-jump" id="jumpBtn" type="button" aria-describedby="jumpCount">Tap to jump</button>
+        <span class="best" id="bestScore"></span>
+        <p class="jump-count" id="jumpCount" aria-live="polite">Bridge dive game: tap to jump, <b>hold</b> to flip, <b>let go</b> to straighten out. Hit the water feet or head first. Hit it flat and... you'll see.</p>
       </div>
       </div>
     </div>
@@ -624,89 +644,108 @@ rollBtn.addEventListener("click",()=>{
   };tick();
 });
 
-/* ---------- bridge jump ---------- */
+/* ---------- BRIDGE DIVE GAME ----------
+   Tap / click / space = jump. HOLD = tuck and spin. LET GO = straighten out and stop spinning.
+   Hit the water feet first or head first for a clean dive. Hit it flat = flop.
+   Still tucked when he hits = cannonball. Best score is saved in this browser only.
+   (Old "send him off the bridge" version is in git history if we want it back.) */
 const jumper=document.getElementById("jumper"),splash=document.getElementById("splash"),jumpBtn=document.getElementById("jumpBtn"),jumpCount=document.getElementById("jumpCount");
-const lines=["SPLASH. Classic Ashtyn.","Cannonball! 10/10.","He's already climbing back up.","The river says hi.","Hat stayed on. Rug hats are built different.","Again? Again."];
-/* Each trick: spin direction (+ = forward/clockwise, - = backward), landing spot, apex height,
-   body shape mid-air (tuck < 1 squashes, > 1 stretches into a layout), and a run-up along the bridge.
-   Front flip: forward spin, lands out front. Back flips: backward spin, drift back under the bridge.
-   Gainers: run-up, launch far out, stretched layout, spinning backward against the travel. */
-const DIVES={
-  front:{name:"Front flip",rot:360,land:480,apex:72,tuck:.7,run:0},
-  back:{name:"Back flip",rot:-360,land:345,apex:66,tuck:.7,run:0},
-  dback:{name:"Double back flip",rot:-720,land:335,apex:34,tuck:.58,run:0},
-  gainer:{name:"Gainer",rot:-360,land:535,apex:58,tuck:1.12,run:56},
-  dgainer:{name:"Double gainer",rot:-720,land:545,apex:30,tuck:1.1,run:56}
-};
-const trail=document.getElementById("trail"),slap=document.getElementById("slap"),scene=document.querySelector(".scene");
-const flip=document.getElementById("flip");
-let jumps=0,lastDive=null,anims=[];
-function nextDive(){
-  if(jumps===0)return null;               /* first jump is always a straight jump */
-  const keys=Object.keys(DIVES).filter(k=>k!==lastDive);   /* random, never the same flip twice in a row */
-  return keys[Math.floor(Math.random()*keys.length)];
+const flip=document.getElementById("flip"),slap=document.getElementById("slap"),scene=document.querySelector(".scene");
+const judgesEl=document.getElementById("judges"),judgeTexts=[...judgesEl.querySelectorAll("text")],bestEl=document.getElementById("bestScore");
+const G={X:400,Y:142,WATER:318,VX:42,VY:-275,GRAV:600,MAX_SPIN:-800,SPIN_ACCEL:-2800,CLEAN:40};
+let state="ready",holding=false,px=0,py=0,vx=0,vy=0,rot=0,omega=0,tuck=1,lastT=0,best=0,dives=0;
+try{best=+localStorage.getItem("crosseyedBest")||0}catch(e){}
+const renderBest=()=>{bestEl.textContent=best?`Best: ${best.toFixed(1)}`:"";};
+renderBest();
+
+function press(){holding=true;if(state==="ready")launch();}
+function release(){holding=false;}
+function launch(){
+  state="air";px=G.X;py=G.Y;vx=G.VX;vy=G.VY;rot=0;omega=0;tuck=1;lastT=performance.now();
+  judgesEl.classList.remove("on");jumper.classList.add("flying");
+  jumpBtn.textContent="Hold to flip";
+  jumpCount.textContent="Hold to spin. Let go to straighten out.";
+  requestAnimationFrame(step);
 }
-jumpBtn.addEventListener("click",()=>{
-  if(jumpBtn.disabled)return;jumpBtn.disabled=true;
-  const code=nextDive();
-  /* EASTER EGG: 1 in 10 flips goes wrong. Belly flop or back flop, never on the warm-up jump. */
-  const randomFlop=Math.random()<.1?(Math.random()<.5?"belly":"back"):null;
-  const flop=code?randomFlop:null;
-  const d=code?DIVES[code]:{name:"Straight jump",rot:0,land:412,apex:100,tuck:1,run:0};
-  const dur=reduce?0:900+Math.abs(d.rot)/360*300+(d.run?450:0);
-  jumpCount.textContent=`${d.name}...`;
-  splash.style.transform=`translate(${d.land-412}px,0px)`;
-  const runEnd=d.run?.28:0, x0=400+d.run, apexX=x0+(d.land-x0)*.4;
-  const apexT=runEnd+(1-runEnd)*.36;
-  if(d.rot){
-    trail.setAttribute("d",`M${x0} 142 Q${apexX} ${2*d.apex-230} ${d.land} 318`);
-    trail.style.opacity=".75";
-  }
-  if(!reduce){
-    const jf=[{transform:"translate(400px,142px)",offset:0,easing:d.run?"ease-in":"ease-out"}];
-    if(d.run)jf.push({transform:`translate(${x0}px,142px)`,offset:runEnd,easing:"ease-out"});
-    jf.push({transform:`translate(${apexX}px,${d.apex}px)`,offset:apexT,easing:"ease-in"});
-    jf.push({transform:`translate(${d.land}px,318px)`,offset:1});
-    const sx=d.tuck>1?.9:1;
-    const fr=flop==="belly"?90:-90;   /* lands flat: face down or face up */
-    const ff=flop?[
-      {transform:"rotate(0deg) scale(1,1)",offset:0},
-      {transform:"rotate(0deg) scale(1,1)",offset:runEnd+.04,easing:"ease-out"},
-      {transform:`rotate(${fr*.6}deg) scale(1,1)`,offset:runEnd+.28,easing:"ease-in-out"},
-      {transform:`rotate(${-fr*.3}deg) scale(1,1)`,offset:runEnd+.5,easing:"ease-in"},
-      {transform:`rotate(${fr}deg) scale(1,1)`,offset:.9},
-      {transform:`rotate(${fr}deg) scale(1,1)`,offset:1}
-    ]:[
-      {transform:"rotate(0deg) scale(1,1)",offset:0},
-      {transform:"rotate(0deg) scale(1,1)",offset:runEnd+.04,easing:"ease-in-out"},
-      {transform:`rotate(${d.rot/2}deg) scale(${sx},${d.tuck})`,offset:(runEnd+.04+.88)/2,easing:"ease-in-out"},
-      {transform:`rotate(${d.rot}deg) scale(1,1)`,offset:.88},
-      {transform:`rotate(${d.rot}deg) scale(1,1)`,offset:1}
-    ];
-    anims=[jumper.animate(jf,{duration:dur,fill:"forwards"}),flip.animate(ff,{duration:dur,fill:"forwards"})];
-  }
+function step(now){
+  if(state!=="air")return;
+  const dt=Math.min(.033,(now-lastT)/1000);lastT=now;
+  vy+=G.GRAV*dt;px+=vx*dt;py+=vy*dt;
+  if(holding)omega=Math.max(G.MAX_SPIN,omega+G.SPIN_ACCEL*dt);
+  else omega*=Math.exp(-9*dt);
+  rot+=omega*dt;
+  tuck+=((holding?.7:1)-tuck)*Math.min(1,dt*14);
+  jumper.style.transform=`translate(${px}px,${Math.min(py,G.WATER)}px)`;
+  flip.style.transform=`rotate(${rot}deg) scale(${1+(1-tuck)*.25},${tuck})`;
+  if(py>=G.WATER){enter();return;}
+  requestAnimationFrame(step);
+}
+const judge=base=>[0,1,2].map(()=>Math.max(0,Math.min(10,Math.round((base+(Math.random()-.5)*1.2)*2)/2)));
+function enter(){
+  state="result";dives++;
+  jumpBtn.textContent="Judges are scoring...";
+  const total=Math.abs(rot);
+  const halfs=Math.round(total/180), err=Math.abs(total-halfs*180), flips=halfs/2;
+  const a=((rot%360)+540)%360-180;   /* body angle at entry, -180..180 */
+  let kind;
+  if(holding&&tuck<.85)kind="cannonball";
+  else if(err<=G.CLEAN)kind=halfs%2?"head":"feet";
+  else kind=a>0?"belly":"back";
+  const flop=kind==="belly"||kind==="back";
+  const q=1-err/G.CLEAN;
+  const base=flop?1.5:kind==="cannonball"?4.5:3+q*3.5+Math.min(flips,2.5)*1.3;
+  const scores=judge(base);
+  const dd=flop||kind==="cannonball"?1:1+flips*.5;
+  const total3=scores.reduce((s,x)=>s+x,0), score=Math.round(total3*dd*10)/10;
+  const fl=flips===0?"No flips":`${flips} flip${flips===1?"":"s"}`;
+  const msg={
+    feet:`${fl}, feet first. Clean!`,
+    head:`${fl}, head first. Rip entry!`,
+    cannonball:"CANNONBALL! He was still tucked. Let go sooner for style points.",
+    belly:"BELLY FLOP! Let go when he's straight up and down.",
+    back:"BACK FLOP! The whole river heard that."
+  }[kind];
+
+  splash.style.transform=`translate(${px-412}px,0px)`;
+  splash.classList.add("on");
+  if(flop||kind==="cannonball")splash.classList.add("big");
+  if(flop){
+    flip.style.transform=`rotate(${a>0?90:-90}deg) scale(1,1)`;
+    slap.setAttribute("x",px);slap.classList.add("on");
+    scene.classList.remove("shake");void scene.offsetWidth;scene.classList.add("shake");
+    setTimeout(()=>jumper.classList.add("under"),800);
+  }else jumper.classList.add("under");
+
   setTimeout(()=>{
-    splash.classList.add("on");jumps++;lastDive=code;
-    if(flop){
-      splash.classList.add("big");
-      slap.setAttribute("x",d.land);slap.classList.add("on");
-      scene.classList.remove("shake");void scene.offsetWidth;scene.classList.add("shake");
-      setTimeout(()=>jumper.classList.add("under"),800);
-      jumpCount.textContent=flop==="belly"
-        ?`Tried a ${d.name.toLowerCase()}... BELLY FLOP! That one's gonna leave a mark. Jumps: ${jumps}`
-        :`Tried a ${d.name.toLowerCase()}... BACK FLOP! The whole river heard that. Jumps: ${jumps}`;
-    }else{
-      jumper.classList.add("under");
-      jumpCount.textContent=`${d.name}! ${lines[(jumps-1)%lines.length]} Jumps: ${jumps}`;
-    }
-  },dur);
+    judgeTexts.forEach((t,i)=>{t.textContent=scores[i]%1?scores[i].toFixed(1):scores[i];t.setAttribute("fill",scores[i]<4?"#B3262E":"#1E2230");});
+    judgesEl.classList.remove("on");void judgesEl.getBoundingClientRect();judgesEl.classList.add("on");
+    let line=`${msg} Judges: ${scores.join(" · ")} × ${dd.toFixed(1)} = ${score.toFixed(1)}`;
+    if(score>best){best=score;try{localStorage.setItem("crosseyedBest",String(best))}catch(e){}line+=" NEW BEST!";renderBest();}
+    jumpCount.textContent=line;
+  },350);
+
   setTimeout(()=>{
-    splash.classList.remove("on","big");slap.classList.remove("on");trail.style.opacity="0";
-    jumper.classList.add("noanim");anims.forEach(a=>a.cancel());anims=[];jumper.classList.remove("under");
+    splash.classList.remove("on","big");slap.classList.remove("on");
+    jumper.classList.add("noanim");jumper.classList.remove("under","flying");
+    jumper.style.transform="";flip.style.transform="";
     void jumper.getBoundingClientRect();jumper.classList.remove("noanim");
-    jumpBtn.disabled=false;jumpBtn.textContent="Send him again";
-  },dur+(flop?2100:1400));
+    jumpBtn.textContent="Tap to jump again";state="ready";
+  },flop?2600:2000);
+}
+
+/* controls: mouse/pen on the scene, anything on the button, space bar while the scene is on screen */
+jumpBtn.addEventListener("pointerdown",e=>{if(e.button>0)return;e.preventDefault();press();});
+scene.addEventListener("pointerdown",e=>{if(e.pointerType==="touch"||e.button>0)return;e.preventDefault();press();});
+["pointerup","pointercancel","blur"].forEach(ev=>window.addEventListener(ev,release));
+[jumpBtn,scene].forEach(el=>el.addEventListener("contextmenu",e=>e.preventDefault()));
+let heroVisible=true;
+try{new IntersectionObserver(es=>{heroVisible=es[0].isIntersecting;}).observe(scene);}catch(e){}
+window.addEventListener("keydown",e=>{
+  const onBtn=document.activeElement===jumpBtn;
+  if(!(e.code==="Space"&&(heroVisible||onBtn))&&!(e.code==="Enter"&&onBtn))return;
+  e.preventDefault();if(!e.repeat)press();
 });
+window.addEventListener("keyup",e=>{if(e.code==="Space"||e.code==="Enter")release();});
 
 /* ---------- eyes that follow the cursor ---------- */
 const pL=document.getElementById("pL"),pR=document.getElementById("pR"),crossBtn=document.getElementById("crossBtn");
