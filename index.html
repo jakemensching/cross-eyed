@@ -197,7 +197,7 @@ footer .wrap{display:flex;flex-direction:column;gap:30px}
 footer h2{color:var(--cream)}
 .closing{font-family:var(--f-hand);font-size:1.3rem;color:var(--oat);margin-top:10px;transform:rotate(-1deg)}
 .contact-card{background:var(--night-2);border:2px dashed var(--olive);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:8px;min-width:0}
-.contact-card .k{font-family:var(--f-display);color:var(--rug);font-size:.95rem;letter-spacing:.03em}
+.contact-card .k{font-family:var(--f-display);color:var(--river-lt);font-size:.95rem;letter-spacing:.03em}
 .contact-card .v{font-size:1.05rem;font-weight:700;color:var(--cream);overflow-wrap:anywhere;user-select:all}
 .contact-card a.v{text-decoration:underline;text-decoration-color:var(--leaf);text-underline-offset:4px}
 .copy{align-self:flex-start;background:transparent;color:var(--oat);border:2px solid var(--oat);border-radius:999px;padding:5px 12px;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer}
@@ -206,7 +206,18 @@ footer h2{color:var(--cream)}
 .foot-bottom svg{width:34px;height:22px;vertical-align:middle;margin-right:8px}
 
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,160%);background:var(--night);color:var(--cream);padding:12px 20px;border-radius:999px;border:3px solid var(--leaf);font-weight:700;z-index:50;transition:transform .3s;max-width:calc(100% - 32px);text-align:center}
-.toast.show{transform:translate(-50%,0)}
+.toast.show{transform:translate(-50%,0);visibility:visible}
+.toast{visibility:hidden}
+
+/* ---------- phone tweaks ---------- */
+@media (max-width:560px){
+  section{padding-block:56px}
+  .hero{padding-block:32px 48px}
+  .photo{max-width:260px;margin-inline:auto}
+  .sec-head{margin-bottom:26px}
+  .btn{padding:12px 18px}
+}
+.btn,.chip,.cross-btn,.dm{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 </style>
 </head>
 <body>
@@ -716,10 +727,34 @@ function crossEyes(on){
     logoP[0].style.transform="translate(3px,1px)";logoP[1].style.transform="translate(-3px,1px)";}
 }
 window.addEventListener("pointermove",e=>{aimLogo(e.clientX,e.clientY);if(crossed)return;aim(pL,e.clientX,e.clientY);aim(pR,e.clientX,e.clientY);if(!crossed)return;});
-crossBtn.addEventListener("pointerenter",()=>crossEyes(true));
+/* on phones the eyes look wherever you tap */
+window.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse")return;aimLogo(e.clientX,e.clientY);if(crossed||e.target.closest("#crossBtn"))return;aim(pL,e.clientX,e.clientY);aim(pR,e.clientX,e.clientY);});
+/* hover crosses the eyes on desktop; on touch the tap (click) toggles it */
+crossBtn.addEventListener("pointerenter",e=>{if(e.pointerType==="mouse")crossEyes(true)});
 crossBtn.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")crossEyes(false)});
 crossBtn.addEventListener("click",()=>crossEyes(!crossed));
 crossBtn.addEventListener("blur",()=>crossEyes(false));
+
+/* ---------- BACKEND HEARTBEAT ----------
+   OFF until the backend exists. When it's live, set BACKEND_URL to its base URL
+   (e.g. "https://api.crosseyedhats.com") and the site pings `${BACKEND_URL}/health`
+   on load, every 5 minutes while the tab is open, and when the tab comes back into view.
+   Result lands on <html data-backend="up|down"> so the shop can react later.
+   NEVER put a Stripe secret key in this file. The browser talks to OUR backend;
+   only the backend talks to Stripe. */
+const BACKEND_URL="";
+const HEARTBEAT_MS=5*60*1000;
+const backendStatus={ok:null,checkedAt:null};
+async function heartbeat(){
+  if(!BACKEND_URL||document.hidden)return;
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),5000);
+  try{const r=await fetch(`${BACKEND_URL}/health`,{signal:ctrl.signal,cache:"no-store"});backendStatus.ok=r.ok;}
+  catch(e){backendStatus.ok=false;}
+  finally{clearTimeout(timer);backendStatus.checkedAt=new Date();document.documentElement.dataset.backend=backendStatus.ok?"up":"down";}
+}
+heartbeat();
+setInterval(heartbeat,HEARTBEAT_MS);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)heartbeat();});
 
 /* ---------- mobile menu ---------- */
 const menuBtn=document.getElementById("menuBtn"),navLinks=document.getElementById("navLinks");
